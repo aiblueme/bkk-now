@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BKK_NOW — Bangkok Events</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Courier New', Courier, monospace;
+  background: #fff;
+  color: #000;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+/* ── HEADER ── */
+header {
+  border-bottom: 4px solid #000;
+  padding: 14px 20px 12px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: start;
+  gap: 8px;
+}
+
+.masthead {
+  font-size: 40px;
+  font-weight: 900;
+  letter-spacing: -2px;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.header-right {
+  text-align: right;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  line-height: 1.6;
+}
+
+#event-count {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-top: 5px;
+}
+
+/* ── NAV ── */
+nav {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #fff;
+  border-bottom: 2px solid #000;
+  padding: 7px 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  align-items: center;
+}
+
+.cat-btn {
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 3px 8px;
+  border: 2px solid #000;
+  border-radius: 0;
+  background: #fff;
+  color: #000;
+  cursor: pointer;
+  transition: background 0.05s, color 0.05s;
+}
+
+.cat-btn.active {
+  background: #000;
+  color: #fff;
+}
+
+.cat-btn:not(.active):hover {
+  background: #e63946;
+  color: #fff;
+  border-color: #e63946;
+}
+
+.reset-btn {
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 3px 8px;
+  border: 2px solid #000;
+  border-radius: 0;
+  background: #fff;
+  color: #000;
+  cursor: pointer;
+  margin-left: auto;
+}
+
+.reset-btn:hover {
+  background: #000;
+  color: #fff;
+}
+
+/* ── MAIN ── */
+main {
+  padding: 0 20px 48px;
+}
+
+/* ── SECTION ── */
+.cat-section { }
+.cat-section.hidden { display: none; }
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  border-top: 2px solid #000;
+  border-bottom: 2px solid #000;
+  padding: 7px 0;
+  margin-top: 28px;
+}
+
+.section-title {
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.section-count {
+  font-size: 11px;
+  font-weight: 400;
+  color: #666;
+  letter-spacing: 0.04em;
+}
+
+/* ── GRID ── */
+.event-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border-left: 2px solid #000;
+}
+
+/* ── CARD ── */
+.event-card {
+  border-right: 2px solid #000;
+  border-bottom: 2px solid #000;
+  padding: 12px 13px 14px;
+  position: relative;
+}
+
+.event-card.past {
+  opacity: 0.4;
+}
+
+.past-badge {
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  font-size: 9px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  background: #000;
+  color: #fff;
+  padding: 2px 5px;
+}
+
+.cat-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: #e63946;
+  margin-bottom: 5px;
+}
+
+.event-title {
+  font-size: 14px;
+  font-weight: 900;
+  text-transform: uppercase;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  margin-bottom: 7px;
+}
+
+.event-title a {
+  color: #000;
+  text-decoration: none;
+}
+
+.event-title a:hover {
+  text-decoration: underline;
+}
+
+.event-desc {
+  font-size: 11px;
+  line-height: 1.55;
+  margin-bottom: 10px;
+  color: #333;
+}
+
+.event-date {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 3px;
+}
+
+.event-venue {
+  font-size: 11px;
+  color: #555;
+}
+
+.event-venue::before {
+  content: '→ ';
+  color: #000;
+  font-weight: 700;
+}
+
+/* ── ERROR ── */
+.error-state {
+  border: 4px solid #e63946;
+  padding: 32px 24px;
+  margin: 28px 0;
+}
+
+.error-state h2 {
+  font-size: 18px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 8px;
+}
+
+.error-state p {
+  font-size: 12px;
+  margin-top: 4px;
+  color: #444;
+}
+
+/* ── FOOTER ── */
+footer {
+  border-top: 4px solid #000;
+  padding: 10px 20px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  display: flex;
+  justify-content: space-between;
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 900px) {
+  .event-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 600px) {
+  .event-grid { grid-template-columns: 1fr; }
+  .masthead { font-size: 28px; }
+  header { grid-template-columns: 1fr; }
+  .header-right { text-align: left; margin-top: 6px; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="masthead">BKK_NOW</div>
+    <div id="event-count">LOADING...</div>
+  </div>
+  <div class="header-right">
+    <div id="header-date">BANGKOK</div>
+    <div>EVENTS CALENDAR</div>
+  </div>
+</header>
+
+<nav id="cat-nav"></nav>
+
+<main id="main"></main>
+
+<footer>
+  <span>BKK_NOW / BANGKOK</span>
+  <span id="footer-updated">—</span>
+</footer>
+
+<script>
+const CATS = ['art', 'culture', 'food', 'music', 'nightlife', 'sports'];
+
+let allEvents = [];
+let active = new Set(CATS);
+
+function isPast(dateEnd) {
+  if (!dateEnd) return false;
+  return new Date(dateEnd + 'T23:59:59') < new Date();
+}
+
+function formatGenerated(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  const date = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase();
+  const time = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  return `LAST UPDATED: ${date} ${time}`;
+}
+
+function render() {
+  const upcoming = allEvents.filter(e => !isPast(e.date_end)).length;
+  const past = allEvents.filter(e => isPast(e.date_end)).length;
+  document.getElementById('event-count').textContent = `${upcoming} UPCOMING — ${past} PAST`;
+
+  // counts per category
+  const counts = {};
+  CATS.forEach(c => counts[c] = 0);
+  allEvents.forEach(e => { if (e.category && counts[e.category] !== undefined) counts[e.category]++; });
+
+  // nav
+  const nav = document.getElementById('cat-nav');
+  nav.innerHTML = '';
+  CATS.forEach(cat => {
+    if (!counts[cat]) return;
+    const btn = document.createElement('button');
+    btn.className = 'cat-btn' + (active.has(cat) ? ' active' : '');
+    btn.textContent = `${cat.toUpperCase()} ${counts[cat]}`;
+    btn.addEventListener('click', () => {
+      if (active.has(cat)) {
+        if (active.size === 1) return;
+        active.delete(cat);
+      } else {
+        active.add(cat);
+      }
+      render();
+    });
+    nav.appendChild(btn);
+  });
+
+  const resetBtn = document.createElement('button');
+  resetBtn.className = 'reset-btn';
+  resetBtn.textContent = 'ALL';
+  resetBtn.addEventListener('click', () => { active = new Set(CATS); render(); });
+  nav.appendChild(resetBtn);
+
+  // sections
+  const main = document.getElementById('main');
+  main.innerHTML = '';
+
+  CATS.forEach(cat => {
+    const events = allEvents.filter(e => e.category === cat);
+    if (!events.length) return;
+
+    const section = document.createElement('section');
+    section.className = 'cat-section' + (active.has(cat) ? '' : ' hidden');
+    section.id = `cat-${cat}`;
+
+    const header = document.createElement('div');
+    header.className = 'section-header';
+    header.innerHTML =
+      `<span class="section-title">&#9632; ${cat.toUpperCase()}</span>` +
+      `<span class="section-count">${events.length} EVENT${events.length !== 1 ? 'S' : ''}</span>`;
+    section.appendChild(header);
+
+    const grid = document.createElement('div');
+    grid.className = 'event-grid';
+
+    events.forEach(event => {
+      const past = isPast(event.date_end);
+      const card = document.createElement('article');
+      card.className = 'event-card' + (past ? ' past' : '');
+
+      const titleInner = event.url
+        ? `<a href="${escHtml(event.url)}" target="_blank" rel="noopener">${escHtml(event.title)}</a>`
+        : escHtml(event.title);
+
+      card.innerHTML =
+        (past ? '<span class="past-badge">PAST</span>' : '') +
+        `<div class="cat-label">${escHtml(event.category)}</div>` +
+        `<div class="event-title">${titleInner}</div>` +
+        `<div class="event-desc">${escHtml(event.description)}</div>` +
+        `<div class="event-date">${escHtml(event.date_display || event.date_start)}</div>` +
+        `<div class="event-venue">${escHtml(event.venue)}</div>`;
+
+      grid.appendChild(card);
+    });
+
+    section.appendChild(grid);
+    main.appendChild(section);
+  });
+}
+
+function escHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+async function init() {
+  document.getElementById('header-date').textContent =
+    new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+      .toUpperCase().replace(/ /g, '.') + ' | BANGKOK';
+
+  try {
+    const res = await fetch('data/events.json');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    allEvents = (data.events || []).sort((a, b) =>
+      (a.date_start || '').localeCompare(b.date_start || '')
+    );
+    document.getElementById('footer-updated').textContent = formatGenerated(data.generated_at);
+    render();
+  } catch (err) {
+    document.getElementById('event-count').textContent = 'NO DATA';
+    document.getElementById('main').innerHTML =
+      `<div class="error-state">` +
+      `<h2>DATA UNAVAILABLE</h2>` +
+      `<p>Could not load <code>data/events.json</code> — run <code>pipeline.py</code> to fetch events.</p>` +
+      `<p>${escHtml(err.message)}</p>` +
+      `</div>`;
+  }
+}
+
+init();
+</script>
+</body>
+</html>

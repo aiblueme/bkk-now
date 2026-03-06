@@ -1,0 +1,13 @@
+services:
+  app:
+    image: bkk-now
+    container_name: bkk-now
+    volumes:
+      - ./data:/usr/share/nginx/html/data
+    networks:
+      - swag_network
+    restart: unless-stopped
+
+networks:
+  swag_network:
+    external: true
