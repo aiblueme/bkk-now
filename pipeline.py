@@ -9,6 +9,7 @@ import os
 import json
 import re
 import sys
+import time
 import requests
 from datetime import datetime, timezone
 from pathlib import Path
@@ -84,9 +85,9 @@ VALID_CATS = {"art", "culture", "food", "music", "nightlife", "sports"}
 
 FIRECRAWL_HOST = os.environ.get("FIRECRAWL_HOST", "http://localhost:3002")
 
+# Single-page scrapes
 FIRECRAWL_SOURCES = [
     "https://bk.asia-city.com/events",
-    "https://www.timeout.com/bangkok/things-to-do",
     "https://www.coconuts.co/bangkok/events/",
     "https://www.bacc.or.th/en/event/",
     "https://www.siamparagon.co.th/en/events/",
@@ -100,6 +101,11 @@ FIRECRAWL_SOURCES = [
     "https://www.tatnews.org/category/festivals-events/",
     "https://www.expatden.com/thailand/events-in-bangkok/",
     "https://www.muaythaiworld.com/schedule",
+]
+
+# Crawl sources — follows links 1 level deep to discover sub-articles
+FIRECRAWL_CRAWL_SOURCES = [
+    "https://www.timeout.com/bangkok/things-to-do",
 ]
 
 
@@ -143,6 +149,46 @@ def dedup_results(raw_results):
 
 
 # ── Firecrawl ─────────────────────────────────────────────────────────────────
+
+def firecrawl_crawl(url, max_pages=10):
+    """Crawl a URL and follow links one level deep. Returns list of markdown strings."""
+    try:
+        resp = requests.post(f"{FIRECRAWL_HOST}/v1/crawl", json={
+            "url": url,
+            "maxDepth": 2,
+            "limit": max_pages,
+            "scrapeOptions": {
+                "formats": ["markdown"],
+                "onlyMainContent": True,
+            },
+        }, timeout=10)
+        if resp.status_code != 200:
+            print(f"  ✗ crawl start failed {url} (status {resp.status_code})")
+            return []
+
+        crawl_id = resp.json().get("id")
+        if not crawl_id:
+            return []
+
+        for _ in range(12):
+            time.sleep(5)
+            status_resp = requests.get(f"{FIRECRAWL_HOST}/v1/crawl/{crawl_id}", timeout=10)
+            data = status_resp.json()
+            if data.get("status") == "completed":
+                pages = data.get("data", [])
+                results = [p.get("markdown", "") for p in pages if p.get("markdown")]
+                print(f"  ✓ crawl {url} → {len(results)} pages")
+                return results
+            elif data.get("status") == "failed":
+                print(f"  ✗ crawl failed {url}")
+                return []
+
+        print(f"  ✗ crawl timeout {url}")
+        return []
+    except Exception as e:
+        print(f"  ✗ crawl error {url}: {e}")
+        return []
+
 
 def firecrawl_scrape(url):
     try:
@@ -304,6 +350,13 @@ def run_pipeline():
             firecrawl_results.append({"url": url, "markdown": md[:8000]})
 
     print(f"Firecrawl: {len(firecrawl_results)}/{len(FIRECRAWL_SOURCES)} sources returned content")
+
+    print(f"\nFirecrawl: crawling {len(FIRECRAWL_CRAWL_SOURCES)} sources (depth=1)...")
+    for url in FIRECRAWL_CRAWL_SOURCES:
+        pages = firecrawl_crawl(url, max_pages=15)
+        for i, md in enumerate(pages):
+            if md:
+                firecrawl_results.append({"url": f"{url}#page{i}", "markdown": md[:6000]})
 
     # Step 3: Build combined input for Gemini
     combined_input = "=== TAVILY SEARCH RESULTS ===\n"
