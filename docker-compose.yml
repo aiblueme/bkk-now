@@ -1,12 +1,24 @@
 services:
-  app:
+  bkk-now:
+    build: .
     image: bkk-now
     container_name: bkk-now
+    restart: unless-stopped
     volumes:
       - ./data:/usr/share/nginx/html/data
     networks:
       - swag-network
-    restart: unless-stopped
+    labels:
+      - "swag=enable"
+      - "swag_address=bkk-now"
+      - "swag_port=80"
+      - "swag_url=bkk-now.shellnode.lol"
+      - "homepage.instance=my-vps"
+      - "homepage.name=BKK Now"
+      - "homepage.group=Projects"
+      - "homepage.href=https://bkk-now.shellnode.lol"
+      - "homepage.icon=mdi-calendar-today"
+      - "homepage.description=Bangkok events calendar"
 
 networks:
   swag-network:
