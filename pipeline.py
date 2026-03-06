@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-BKK-NOW — Bangkok events data pipeline v3
-Tavily Search (discovery) → Gemini Flash (normalisation) → data/events.json
+BKK-NOW — Bangkok events data pipeline v4
+Tavily (discovery) + Firecrawl (curated scrapes) → Gemini Flash (normalisation) → data/events.json
 # TODO: add cron
 """
 
@@ -9,6 +9,7 @@ import os
 import json
 import re
 import sys
+import requests
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -81,6 +82,26 @@ QUERIES = [
 
 VALID_CATS = {"art", "culture", "food", "music", "nightlife", "sports"}
 
+FIRECRAWL_HOST = os.environ.get("FIRECRAWL_HOST", "http://localhost:3002")
+
+FIRECRAWL_SOURCES = [
+    "https://bk.asia-city.com/events",
+    "https://www.timeout.com/bangkok/things-to-do",
+    "https://www.coconuts.co/bangkok/events/",
+    "https://www.bacc.or.th/en/event/",
+    "https://www.siamparagon.co.th/en/events/",
+    "https://www.centralworld.co.th/en/event",
+    "https://www.iconsiam.com/en/events",
+    "https://emquartier.co.th/event",
+    "https://www.eventpop.me/events?location=bangkok",
+    "https://www.thaiticketmajor.com/event/",
+    "https://rajadamnern.com/tickets/",
+    "https://ra.co/clubs/th/bangkok",
+    "https://www.tatnews.org/category/festivals-events/",
+    "https://www.expatden.com/thailand/events-in-bangkok/",
+    "https://www.muaythaiworld.com/schedule",
+]
+
 
 # ── Deduplication ─────────────────────────────────────────────────────────────
 
@@ -121,6 +142,26 @@ def dedup_results(raw_results):
     return url_deduped, deduped
 
 
+# ── Firecrawl ─────────────────────────────────────────────────────────────────
+
+def firecrawl_scrape(url):
+    try:
+        resp = requests.post(f"{FIRECRAWL_HOST}/v1/scrape", json={
+            "url": url,
+            "formats": ["markdown"],
+            "onlyMainContent": True,
+        }, timeout=30)
+        if resp.status_code == 200:
+            md = resp.json().get("data", {}).get("markdown", "")
+            if md:
+                print(f"  ✓ {url} ({len(md)} chars)")
+                return md
+        print(f"  ✗ {url} (status {resp.status_code})")
+    except Exception as e:
+        print(f"  ✗ {url} ({e})")
+    return None
+
+
 # ── Tavily ────────────────────────────────────────────────────────────────────
 
 def run_tavily():
@@ -147,21 +188,7 @@ def run_tavily():
 
 # ── Gemini normalisation ──────────────────────────────────────────────────────
 
-def run_gemini(results):
-    results_json = json.dumps(
-        [
-            {
-                "title": r.get("title"),
-                "url": r.get("url"),
-                "content": r.get("content"),
-                "score": r.get("score"),
-            }
-            for r in results
-        ],
-        ensure_ascii=False,
-        indent=2,
-    )
-
+def run_gemini(combined_input):
     prompt = f"""You are an event data extractor. Below is raw search result data about Bangkok events.
 
 Extract ONLY real, non-recurring, temporary events happening in the next 30 days.
@@ -202,12 +229,9 @@ Additional rules:
 - Max 5 events per category — if you have more, pick the most interesting/specific ones
 
 Raw search data:
-{results_json}"""
+{combined_input}"""
 
     response = gemini_client.models.generate_content(model=GEMINI_MODEL, contents=prompt)
-
-    # TODO: Phase 2 — enrich event URLs with self-hosted Firecrawl for full page content
-
     raw = response.text
     clean = strip_fences(raw)
 
@@ -232,6 +256,8 @@ def strip_fences(text):
     text = text.strip()
     text = re.sub(r"^```(?:json)?\s*", "", text, flags=re.MULTILINE)
     text = re.sub(r"```\s*$", "", text, flags=re.MULTILINE)
+    # Strip control characters that break JSON parsing (keep \t \n \r)
+    text = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]", "", text)
     return text.strip()
 
 
@@ -255,7 +281,7 @@ def normalise(events):
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def run_pipeline():
-    print(f"BKK-NOW Pipeline v3 — {TODAY_DISPLAY}")
+    print(f"BKK-NOW Pipeline v4 — {TODAY_DISPLAY}")
     print(f"Gemini model: {GEMINI_MODEL}")
 
     # Step 1: Tavily discovery
@@ -263,21 +289,42 @@ def run_pipeline():
     raw_results, total_raw = run_tavily()
     url_deduped, title_deduped = dedup_results(raw_results)
 
-    print(f"Tavily: {total_raw} raw results across {len(QUERIES)} queries")
-    print(f"After URL dedup: {len(url_deduped)} unique URLs")
-    print(f"After title dedup: {len(title_deduped)} results")
+    print(f"Tavily: {total_raw} raw → {len(title_deduped)} after dedup")
 
     if not title_deduped:
         print("Error: no Tavily results — check API key and quota")
         sys.exit(1)
 
-    # Step 2: Gemini normalisation
+    # Step 2: Firecrawl curated scrapes
+    print(f"\nFirecrawl: scraping {len(FIRECRAWL_SOURCES)} sources...")
+    firecrawl_results = []
+    for url in FIRECRAWL_SOURCES:
+        md = firecrawl_scrape(url)
+        if md:
+            firecrawl_results.append({"url": url, "markdown": md[:8000]})
+
+    print(f"Firecrawl: {len(firecrawl_results)}/{len(FIRECRAWL_SOURCES)} sources returned content")
+
+    # Step 3: Build combined input for Gemini
+    combined_input = "=== TAVILY SEARCH RESULTS ===\n"
+    combined_input += json.dumps(
+        [{"title": r.get("title"), "url": r.get("url"), "content": r.get("content"), "score": r.get("score")}
+         for r in title_deduped],
+        ensure_ascii=False,
+    )
+    combined_input += "\n\n=== FIRECRAWL SCRAPED PAGES ===\n"
+    for r in firecrawl_results:
+        combined_input += f"\n--- SOURCE: {r['url']} ---\n"
+        combined_input += r["markdown"]
+        combined_input += "\n"
+
+    # Step 4: Gemini normalisation
     print("\nNormalising with Gemini Flash...")
-    events = run_gemini(title_deduped)
+    events = run_gemini(combined_input)
     events = normalise(events)
 
-    # Step 3: Write output
-    output = {"generated_at": NOW_ISO, "source": "tavily+gemini", "events": events}
+    # Step 5: Write output
+    output = {"generated_at": NOW_ISO, "source": "tavily+firecrawl+gemini", "events": events}
     with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
         json.dump(output, f, ensure_ascii=False, indent=2)
 
@@ -293,7 +340,7 @@ def run_pipeline():
     print(f"Gemini extracted: {len(events)} valid events")
     print(f"Breakdown: {cats_str}")
     if empty:
-        print(f"⚠️  Categories with 0 events: {', '.join(sorted(empty))}")
+        print(f"⚠️  Empty categories: {', '.join(sorted(empty))}")
     print(f"\n✓ Written to {OUTPUT_FILE}")
 
 
