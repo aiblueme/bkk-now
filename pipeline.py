@@ -62,6 +62,9 @@ QUERIES = [
     f"Bangkok culture festival community fair {MONTH_YEAR}",
     f"Bangkok night market popup weekend {MONTH_YEAR}",
     f"Bangkok rooftop party club night DJ {MONTH_YEAR}",
+    f"Bangkok Muay Thai schedule fights {MONTH_YEAR}",
+    f"Bangkok food pop-up dining experience chef {MONTH_YEAR}",
+    f"Bangkok sports tournament competition {MONTH_YEAR}",
 
     # --- Known reliable sources ---
     f"site:bk.asia-city.com events {MONTH_YEAR}",
@@ -172,7 +175,7 @@ Each event object must match this schema exactly:
   "id": "slugified-title-YYYYMMDD",
   "title": "Event Title",
   "category": "art|culture|food|music|nightlife|sports",
-  "description": "2-3 sentences. Include price if known (Free / ฿XXX). Include times if known.",
+  "description": "2-3 sentences. If price is known include it (Free / ฿XXX) — if unknown omit it entirely, never write 'Price not specified'. Include times if known.",
   "date_start": "YYYY-MM-DD",
   "date_end": "YYYY-MM-DD",
   "date_display": "SAT 07 MAR 2026",
@@ -182,12 +185,14 @@ Each event object must match this schema exactly:
 }}
 
 Rules:
-- venue must be specific — never just "Bangkok" or "Thailand"
-- if you cannot determine a specific venue, skip the event entirely
+- venue must include a Bangkok district/neighbourhood — "Bangkok" or "Bangkok, Thailand" alone are NOT acceptable
+- Good format: "Rajadamnern Stadium, Pom Prap Sattru Phai, Bangkok" or "River City Bangkok, Charoenkrung, Bangkok"
+- if you cannot determine a specific district, skip the event entirely
 - date_end equals date_start for single-day events
 - category must be exactly one of: art, culture, food, music, nightlife, sports
 
 Additional rules:
+- Never start a description with "Experience the" or "Enjoy the" — describe what actually happens at the event
 - BALANCE is critical: aim for roughly equal events per category
 - If you have 10+ music events, be selective — only include the most notable ones
 - NEVER include the same artist/event twice even at different venues
