@@ -5,9 +5,9 @@ services:
     volumes:
       - ./data:/usr/share/nginx/html/data
     networks:
-      - swag_network
+      - swag-network
     restart: unless-stopped
 
 networks:
-  swag_network:
+  swag-network:
     external: true
