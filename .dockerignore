@@ -1,0 +1,16 @@
+.git
+.github
+.claude
+.gitignore
+README.md
+DEPLOY.md
+LICENSE
+*.md
+docker-compose.yml
+.env
+.env.*
+node_modules
+__pycache__
+.DS_Store
+pipeline.py
+requirements.txt
