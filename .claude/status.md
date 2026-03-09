@@ -36,11 +36,12 @@ Agent: Claude Sonnet 4.6
 - None
 
 ## Backlog
-- [P3] Add `server_tokens off` to nginx.conf (may be set at SWAG level already — verify before adding)
-- [P3] Verify SWAG is still picking up `bkk-now` container correctly with the current labels format
+(none)
 
 ## Done
 - [x] Add MIT LICENSE — 2026-03-10 — commit 766dd71
+- [x] nginx: add server_tokens off — 2026-03-10
+- [x] Verify SWAG labels on live container — confirmed correct (swag=enable, correct address/port/url) — 2026-03-10
 - [x] No secrets in git history — confirmed clean (2026-03-09)
 - [x] .env not tracked (in .gitignore since initial commit) — (2026-03-09)
 - [x] Add nginx.conf with security headers — de1a777 (2026-03-09)
