@@ -4,6 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BKK_NOW — Bangkok Events</title>
+<meta name="description" content="Bangkok events calendar — upcoming art, culture, food, music, nightlife and sports events in Bangkok.">
+<meta property="og:title" content="BKK_NOW — Bangkok Events">
+<meta property="og:description" content="Upcoming events in Bangkok, Thailand.">
+<meta property="og:url" content="https://bkk-now.shellnode.lol/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'><rect fill='%231A1A1A' width='1' height='1'/></svg>">
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -131,6 +136,7 @@ main {
 .section-title {
   font-size: 12px;
   font-weight: 900;
+  font-family: inherit;
   text-transform: uppercase;
   letter-spacing: 0.12em;
 }
@@ -186,6 +192,7 @@ main {
 .event-title {
   font-size: 14px;
   font-weight: 900;
+  font-family: inherit;
   text-transform: uppercase;
   line-height: 1.15;
   letter-spacing: -0.02em;
@@ -199,6 +206,13 @@ main {
 
 .event-title a:hover {
   text-decoration: underline;
+}
+
+.event-title a:focus-visible,
+.cat-btn:focus-visible,
+.reset-btn:focus-visible {
+  outline: 2px solid #e63946;
+  outline-offset: 2px;
 }
 
 .event-desc {
@@ -270,13 +284,30 @@ footer {
   header { grid-template-columns: 1fr; }
   .header-right { text-align: left; margin-top: 6px; }
 }
+
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: #000;
+  color: #fff;
+  padding: 4px 8px;
+  font-family: inherit;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  z-index: 100;
+}
+.skip-link:focus { top: 0; }
 </style>
 </head>
 <body>
 
+<a href="#main" class="skip-link">Skip to content</a>
+
 <header>
   <div>
-    <div class="masthead">BKK_NOW</div>
+    <h1 class="masthead">BKK_NOW</h1>
     <div id="event-count">LOADING...</div>
   </div>
   <div class="header-right">
@@ -285,7 +316,7 @@ footer {
   </div>
 </header>
 
-<nav id="cat-nav"></nav>
+<nav id="cat-nav" aria-label="Category filters"></nav>
 
 <main id="main"></main>
 
@@ -329,6 +360,7 @@ function render() {
   CATS.forEach(cat => {
     if (!counts[cat]) return;
     const btn = document.createElement('button');
+    btn.type = 'button';
     btn.className = 'cat-btn' + (active.has(cat) ? ' active' : '');
     btn.textContent = `${cat.toUpperCase()} ${counts[cat]}`;
     btn.addEventListener('click', () => {
@@ -344,6 +376,7 @@ function render() {
   });
 
   const resetBtn = document.createElement('button');
+  resetBtn.type = 'button';
   resetBtn.className = 'reset-btn';
   resetBtn.textContent = 'ALL';
   resetBtn.addEventListener('click', () => { active = new Set(CATS); render(); });
@@ -364,7 +397,7 @@ function render() {
     const header = document.createElement('div');
     header.className = 'section-header';
     header.innerHTML =
-      `<span class="section-title">&#9632; ${cat.toUpperCase()}</span>` +
+      `<h2 class="section-title">&#9632; ${cat.toUpperCase()}</h2>` +
       `<span class="section-count">${events.length} EVENT${events.length !== 1 ? 'S' : ''}</span>`;
     section.appendChild(header);
 
@@ -383,7 +416,7 @@ function render() {
       card.innerHTML =
         (past ? '<span class="past-badge">PAST</span>' : '') +
         `<div class="cat-label">${escHtml(event.category)}</div>` +
-        `<div class="event-title">${titleInner}</div>` +
+        `<h3 class="event-title">${titleInner}</h3>` +
         `<div class="event-desc">${escHtml(event.description)}</div>` +
         `<div class="event-date">${escHtml(event.date_display || event.date_start)}</div>` +
         `<div class="event-venue">${escHtml(event.venue)}</div>`;
