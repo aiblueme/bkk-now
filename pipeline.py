@@ -106,6 +106,9 @@ FIRECRAWL_SOURCES = [
 # Crawl sources — follows links 1 level deep to discover sub-articles
 FIRECRAWL_CRAWL_SOURCES = [
     "https://www.timeout.com/bangkok/things-to-do",
+    "https://www.timeout.com/bangkok/things-to-do/car-events-bangkok",
+    "https://www.timeout.com/bangkok/things-to-do/the-best-things-to-do-in-bangkok-this-weekend",
+    "https://www.timeout.com/bangkok/things-to-do/the-best-things-to-do-in-bangkok-this-march",
 ]
 
 
@@ -238,7 +241,10 @@ def run_gemini(combined_input):
     prompt = f"""You are an event data extractor. Below is raw search result data about Bangkok events.
 
 Extract ONLY real, non-recurring, temporary events happening in the next 30 days.
-Skip: permanent venues, weekly recurring events, bars/restaurants that are always open.
+Skip:
+- Permanent venues, weekly recurring events, bars/restaurants that are always open
+- Private school events, internal corporate events, or events requiring institutional affiliation to attend (e.g. FOBISIA festival at Harrow International School)
+- Events at private schools, embassies, or members-only clubs unless explicitly stated as open to the public
 Today's date is {TODAY}.
 
 Return ONLY a JSON array. No markdown, no preamble, no explanation.
