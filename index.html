@@ -160,24 +160,6 @@ main {
   border-right: 2px solid #000;
   border-bottom: 2px solid #000;
   padding: 12px 13px 14px;
-  position: relative;
-}
-
-.event-card.past {
-  opacity: 0.4;
-}
-
-.past-badge {
-  position: absolute;
-  top: 9px;
-  right: 9px;
-  font-size: 9px;
-  font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  background: #000;
-  color: #fff;
-  padding: 2px 5px;
 }
 
 .cat-label {
@@ -418,9 +400,12 @@ function dateBucket(dateStart) {
 let allEvents = [];
 let active = new Set(CATS);
 
-function isPast(dateEnd) {
+function isTooOld(dateEnd) {
   if (!dateEnd) return false;
-  return new Date(dateEnd + 'T23:59:59') < new Date();
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 2);
+  cutoff.setHours(0, 0, 0, 0);
+  return new Date(dateEnd + 'T23:59:59') < cutoff;
 }
 
 function formatGenerated(iso) {
@@ -432,14 +417,13 @@ function formatGenerated(iso) {
 }
 
 function render() {
-  const upcoming = allEvents.filter(e => !isPast(e.date_end)).length;
-  const past = allEvents.filter(e => isPast(e.date_end)).length;
-  document.getElementById('event-count').textContent = `${upcoming} UPCOMING — ${past} PAST`;
+  const visible = allEvents.filter(e => !isTooOld(e.date_end));
+  document.getElementById('event-count').textContent = `${visible.length} EVENTS`;
 
-  // counts per category
+  // counts per category (from visible only)
   const counts = {};
   CATS.forEach(c => counts[c] = 0);
-  allEvents.forEach(e => { if (e.category && counts[e.category] !== undefined) counts[e.category]++; });
+  visible.forEach(e => { if (e.category && counts[e.category] !== undefined) counts[e.category]++; });
 
   // nav
   const nav = document.getElementById('cat-nav');
@@ -474,7 +458,7 @@ function render() {
   main.innerHTML = '';
 
   CATS.forEach(cat => {
-    const events = allEvents.filter(e => e.category === cat);
+    const events = visible.filter(e => e.category === cat);
     if (!events.length) return;
 
     const section = document.createElement('section');
@@ -493,20 +477,18 @@ function render() {
 
     let lastDate = null;
     events.forEach(event => {
-      const past = isPast(event.date_end);
-
       // Date-row divider when date changes
       if (event.date_start !== lastDate) {
         const bucket = dateBucket(event.date_start);
         const row = document.createElement('div');
         row.className = 'date-row';
-        row.textContent = past ? `${event.date_display || event.date_start} — PAST` : `${event.date_display || event.date_start} — ${bucket}`;
+        row.textContent = `${event.date_display || event.date_start} — ${bucket}`;
         grid.appendChild(row);
         lastDate = event.date_start;
       }
 
       const card = document.createElement('article');
-      card.className = 'event-card' + (past ? ' past' : '');
+      card.className = 'event-card';
 
       const titleInner = event.url
         ? `<a href="${escHtml(event.url)}" target="_blank" rel="noopener">${escHtml(event.title)}</a>`
@@ -519,7 +501,6 @@ function render() {
         (src ? `<span class="badge-source">${escHtml(src)}</span>` : '');
 
       card.innerHTML =
-        (past ? '<span class="past-badge">PAST</span>' : '') +
         `<div class="cat-label">${escHtml(event.category)}</div>` +
         `<h3 class="event-title">${titleInner}</h3>` +
         `<div class="event-desc">${escHtml(event.description)}</div>` +
