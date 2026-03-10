@@ -87,7 +87,7 @@ FIRECRAWL_HOST = os.environ.get("FIRECRAWL_HOST", "http://localhost:3002")
 
 # Single-page scrapes
 FIRECRAWL_SOURCES = [
-    "https://bk.asia-city.com/events",
+    "https://bkmagazine.com/things-to-do/",
     "https://www.coconuts.co/bangkok/events/",
     "https://www.bacc.or.th/en/event/",
     "https://www.siamparagon.co.th/en/events/",
@@ -105,6 +105,7 @@ FIRECRAWL_SOURCES = [
 
 # Crawl sources — follows links 1 level deep to discover sub-articles
 FIRECRAWL_CRAWL_SOURCES = [
+    "https://bkmagazine.com/things-to-do/",
     "https://www.timeout.com/bangkok/things-to-do",
     "https://www.timeout.com/bangkok/things-to-do/car-events-bangkok",
     "https://www.timeout.com/bangkok/things-to-do/the-best-things-to-do-in-bangkok-this-weekend",
