@@ -1,3 +1,4 @@
 google-genai>=1.0.0
 tavily-python
 python-dotenv>=1.0.0
+requests
